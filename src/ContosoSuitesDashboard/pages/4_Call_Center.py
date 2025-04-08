@@ -1,17 +1,23 @@
 import json
-import time
 import re
+import time
 import uuid
-import streamlit as st
-from scipy.io import wavfile
-import azure.cognitiveservices.speech as speechsdk
-from azure.ai.textanalytics import TextAnalyticsClient
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.textanalytics import ExtractiveSummaryAction, AbstractiveSummaryAction
-from azure.cosmos import CosmosClient
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-import openai
 
+import azure.cognitiveservices.speech as speechsdk
+import openai
+import streamlit as st
+from azure.ai.textanalytics import (
+    AbstractiveSummaryAction,
+    ExtractiveSummaryAction,
+    TextAnalyticsClient,
+)
+from azure.core.credentials import AzureKeyCredential
+from azure.cosmos import CosmosClient
+from azure.identity import (
+    DefaultAzureCredential,
+    get_bearer_token_provider,
+)
+from scipy.io import wavfile
 
 st.set_page_config(layout="wide")
 
@@ -48,6 +54,7 @@ def create_transcription_request(audio_file, speech_recognition_language="en-US"
     transcriber = speechsdk.transcription.ConversationTranscriber(
         speech_config, audio_config
     )
+
     all_results = []
 
     def handle_final_result(evt):
@@ -60,11 +67,26 @@ def create_transcription_request(audio_file, speech_recognition_language="en-US"
         nonlocal done
         done = True
 
-    # TODO: Subscribe to the events fired by the conversation transcriber
-    # TODO: stop continuous transcription on either session stopped or canceled events
+    # Subscribe to the events fired by the conversation transcriber
+    transcriber.transcribed.connect(handle_final_result)
+    transcriber.session_started.connect(lambda evt: print(f"SESSION STARTED: {evt}"))
+    transcriber.session_stopped.connect(lambda evt: print(f"SESSION STOPPED {evt}"))
+    transcriber.canceled.connect(lambda evt: print(f"CANCELED {evt}"))
 
-    # TODO: remove this placeholder code and perform the actual transcription
-    all_results = ["This is a test.", "Fill in with real transcription."]
+    # Stop continuous transcription on either session stopped or canceled events
+    transcriber.session_stopped.connect(stop_cb)
+    transcriber.canceled.connect(stop_cb)
+
+    transcriber.start_transcribing_async()
+
+    # Read the whole wave files at once and stream it to sdk
+    _, wav_data = wavfile.read(audio_file)
+    stream.write(wav_data.tobytes())
+    stream.close()
+    while not done:
+        time.sleep(0.5)
+
+    transcriber.stop_transcribing_async()
 
     return all_results
 
@@ -141,10 +163,6 @@ def generate_extractive_summary(call_contents):
 
     language_endpoint = st.secrets["language"]["endpoint"]
     language_key = st.secrets["language"]["key"]
-
-    # The call_contents parameter is formatted as a list of strings.
-    # Join them together with spaces to pass in as a single document.
-    # joined_call_contents = " ".join(call_contents)
 
     # return "This is a placeholder result. Fill in with real extractive summary."
     # Create a TextAnalyticsClient, connecting it to your Language Service endpoint.
@@ -334,7 +352,7 @@ def normalize_text(s):
 
     s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r". ,", "", s)
-    # remove all instances of multiple spaces
+    # Remove all instances of multiple spaces
     s = s.replace("..", ".")
     s = s.replace(". .", ".")
     s = s.replace("\n", "")
