@@ -344,7 +344,19 @@ def make_azure_openai_embedding_request(text):
     """Create and return a new embedding request. Key assumptions:
     - Azure OpenAI endpoint, key, and deployment name stored in Streamlit secrets."""
 
-    return "This is a placeholder result. Fill in with real embedding."
+    token_provider = get_bearer_token_provider(
+        DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+    )
+    aoai_endpoint = st.secrets["aoai"]["endpoint"]
+    aoai_embedding_deployment_name = st.secrets["aoai"]["embedding_deployment_name"]
+
+    client = openai.AzureOpenAI(
+        azure_ad_token_provider=token_provider,
+        api_version="2024-06-01",
+        azure_endpoint=aoai_endpoint,
+    )
+    # Create and return a new embedding request
+    return client.embeddings.create(model=aoai_embedding_deployment_name, input=text)
 
 
 def normalize_text(s):
