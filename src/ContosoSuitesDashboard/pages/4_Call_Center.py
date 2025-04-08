@@ -227,7 +227,23 @@ def generate_query_based_summary(call_contents):
     # Join them together with spaces to pass in as a single document.
     joined_call_contents = " ".join(call_contents)
 
-    return "This is a placeholder result. Fill in with real query-based summary."
+    # Write a system prompt that instructs the large language model to:
+    #    - Generate a short (5 word) summary from the call transcript.
+    #    - Create a two-sentence summary of the call transcript.
+    #    - Output the response in JSON format, with the short summary
+    #       labeled 'call-title' and the longer summary labeled 'call-summary.'
+    system = """
+        Write a five-word summary and label it as call-title.
+        Write a two-sentence summary and label it as call-summary.
+    
+        Output the results in JSON format.
+    """
+
+    # Call make_azure_openai_chat_request().
+    response = make_azure_openai_chat_request(system, joined_call_contents)
+
+    # Return the summary.
+    return response.choices[0].message.content
 
 
 @st.cache_data
