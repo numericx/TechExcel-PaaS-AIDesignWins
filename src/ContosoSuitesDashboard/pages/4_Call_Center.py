@@ -144,9 +144,37 @@ def generate_extractive_summary(call_contents):
 
     # The call_contents parameter is formatted as a list of strings.
     # Join them together with spaces to pass in as a single document.
+    # joined_call_contents = " ".join(call_contents)
+
+    # return "This is a placeholder result. Fill in with real extractive summary."
+    # Create a TextAnalyticsClient, connecting it to your Language Service endpoint.
+    client = TextAnalyticsClient(language_endpoint, AzureKeyCredential(language_key))
+
+    # The call_contents parameter is formatted as a list of strings.
+    # Join them together with spaces to pass in as a single document.
     joined_call_contents = " ".join(call_contents)
 
-    return "This is a placeholder result. Fill in with real extractive summary."
+    # Call the begin_analyze_actions method on your client, passing in the joined
+    # call_contents as an array and an ExtractiveSummaryAction with a max_sentence_countof 2.
+    poller = client.begin_analyze_actions(
+        [joined_call_contents], actions=[ExtractiveSummaryAction(max_sentence_count=2)]
+    )
+
+    # Extract the summary sentences and merge them into a single summary string.
+    for result in poller.result():
+        summary_result = result[0]
+        if summary_result.is_error:
+            st.error(
+                f'Extractive summary resulted in an error with code "{summary_result.code}" and message "{summary_result.message}"'
+            )
+            return ""
+
+        extractive_summary = " ".join(
+            [sentence.text for sentence in summary_result.sentences]
+        )
+
+    # Return the summary as a JSON object in the shape '{"call-summary":extractive_summary}'
+    return json.loads('{"call-summary":"' + extractive_summary + '"}')
 
 
 @st.cache_data
@@ -162,7 +190,33 @@ def generate_abstractive_summary(call_contents):
     # Join them together with spaces to pass in as a single document.
     joined_call_contents = " ".join(call_contents)
 
-    return "This is a placeholder result. Fill in with real abstractive summary."
+    # return "This is a placeholder result. Fill in with real abstractive summary."
+
+    # Create a TextAnalyticsClient, connecting it to your Language Service endpoint.
+    client = TextAnalyticsClient(language_endpoint, AzureKeyCredential(language_key))
+
+    # Call the begin_analyze_actions method on your client,
+    # passing in the joined call_contents as an array
+    # and an AbstractiveSummaryAction with a sentence_count of 2.
+    poller = client.begin_analyze_actions(
+        [joined_call_contents], actions=[AbstractiveSummaryAction(sentence_count=2)]
+    )
+
+    # Extract the summary sentences and merge them into a single summary string.
+    for result in poller.result():
+        summary_result = result[0]
+        if summary_result.is_error:
+            st.error(
+                f'...Is an error with code "{summary_result.code}" and message "{summary_result.message}"'
+            )
+            return ""
+
+        abstractive_summary = " ".join(
+            [summary.text for summary in summary_result.summaries]
+        )
+
+    # Return the summary as a JSON object in the shape '{"call-summary":abstractive_summary}'
+    return json.loads('{"call-summary":"' + abstractive_summary + '"}')
 
 
 @st.cache_data
