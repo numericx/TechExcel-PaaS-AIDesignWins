@@ -379,10 +379,12 @@ def generate_embeddings_for_call_contents(call_contents):
     - Azure OpenAI endpoint, key, and deployment name stored in Streamlit secrets."""
 
     # Normalize the text for tokenization
-    # Call make_azure_openai_embedding_request() with the normalized content
-    # Return the embeddings
+    normalized_content = normalize_text(call_contents)
 
-    return [0, 0, 0]
+    # Call make_azure_openai_embedding_request() with the normalized content
+    response = make_azure_openai_embedding_request(normalized_content)
+
+    return response.data[0].embedding
 
 
 def save_transcript_to_cosmos_db(transcript_item):
