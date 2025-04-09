@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Data.SqlClient;
 using ContosoSuitesWebAPI.Entities;
 using Azure.Core;
+using Microsoft.SemanticKernel;
 
 namespace ContosoSuitesWebAPI.Services;
 
@@ -13,6 +14,7 @@ public class DatabaseService(string connectionString) : IDatabaseService
     /// <summary>
     /// Get all hotels from the database.
     /// </summary>
+    [KernelFunction("get_hotels")]
     public async Task<IEnumerable<Hotel>> GetHotels()
     {
         var sql = "SELECT HotelID, HotelName, City, Country FROM dbo.Hotel";
