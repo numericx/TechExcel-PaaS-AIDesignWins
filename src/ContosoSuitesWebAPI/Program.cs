@@ -5,7 +5,8 @@ using ContosoSuitesWebAPI.Entities;
 using ContosoSuitesWebAPI.Plugins;
 using ContosoSuitesWebAPI.Services;
 using Microsoft.Data.SqlClient;
-using Azure.AI.OpenAI;
+// using Azure.AI.OpenAI;
+using Microsoft.SemanticKernel;
 using Azure;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +20,20 @@ builder.Services.AddSwaggerGen();
 // Use dependency injection to inject services into the application.
 builder.Services.AddSingleton<IVectorizationService, VectorizationService>();
 builder.Services.AddSingleton<MaintenanceCopilot, MaintenanceCopilot>();
+
+// Add the Azure OpenAI text embedding generation service to the kernel builder.
+var kernelBuilder = Kernel.CreateBuilder();
+#pragma warning disable SKEXP0010
+kernelBuilder.AddAzureOpenAITextEmbeddingGeneration(
+    deploymentName: builder.Configuration["AzureOpenAI:EmbeddingDeploymentName"]!,
+    endpoint: builder.Configuration["AzureOpenAI:Endpoint"]!,
+    apiKey: builder.Configuration["AzureOpenAI:ApiKey"]!
+);
+#pragma warning restore SKEXP0010
+Kernel kernel = kernelBuilder.Build();
+
+// Register the Kernel as a singleton
+builder.Services.AddSingleton(kernel);
 
 // Create a single instance of the DatabaseService to be shared across the application.
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>((_) =>
@@ -46,14 +61,14 @@ builder.Services.AddSingleton<CosmosClient>((_) =>
 });
 
 // Create a single instance of the AzureOpenAIClient to be shared across the application.
-builder.Services.AddSingleton<AzureOpenAIClient>((_) =>
-{
-    var endpoint = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]!);
-    var credentials = new AzureKeyCredential(builder.Configuration["AzureOpenAI:ApiKey"]!);
+// builder.Services.AddSingleton<AzureOpenAIClient>((_) =>
+// {
+//     var endpoint = new Uri(builder.Configuration["AzureOpenAI:Endpoint"]!);
+//     var credentials = new AzureKeyCredential(builder.Configuration["AzureOpenAI:ApiKey"]!);
 
-    var client = new AzureOpenAIClient(endpoint, credentials);
-    return client;
-});
+//     var client = new AzureOpenAIClient(endpoint, credentials);
+//     return client;
+// });
 
 var app = builder.Build();
 
